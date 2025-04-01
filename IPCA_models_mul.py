@@ -82,13 +82,7 @@ class IPCA(nn.Module):
         k_x_attn = (k_q @ k.transpose(-2, -1)) * self.scale  # shape=[b, h, k_l, x_l]   
         polar_pos = repeat(polar_pos.unsqueeze(1), 'b () i j -> b h i j', h=self.num_heads)
 
-        # 1.fix new_polar (polar_emb(8, num_head))
-        # new_polar = self.polar_emb(polar_pos.to(torch.int64)).permute(0, 3, 1, 2)
-        # 2.ignore polar head (polar_emb(8, num_head))
-        # new_polar = self.generate_main_orientation(k_x_attn, polar_pos)
-        # new_polar = self.polar_emb(new_polar).permute(0, 3, 1, 2)
-
-        # 3.update polar head separately (polar_emb(8, 1))
+        # update polar head separately (polar_emb(8, 1))
         zeros_tensor = torch.zeros_like(polar_pos).cuda(polar_pos.device)
         max_tensor = torch.ones_like(polar_pos).cuda(polar_pos.device) * 7
         polar_pos = torch.where(polar_pos < 0, zeros_tensor, polar_pos)
