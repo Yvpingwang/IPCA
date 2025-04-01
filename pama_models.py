@@ -1,3 +1,5 @@
+#This is the baseline model [PAMA](https://doi.org/10.1007/978-3-031-43987-2_69) used in this paper.
+
 from functools import partial
 
 import torch
