@@ -36,9 +36,6 @@ class IPCA(nn.Module):
         # NOTE scale factor was wrong in my original version, can set manually to be compat with prev weights
         self.scale = qk_scale or head_dim ** -0.5
 
-        # ignore polar head
-        # self.polar_emb = nn.Embedding(8, num_heads)
-
         # update polar head separately
         self.polar_emb = nn.Embedding(8, 1)
         self.dis_embed = nn.Embedding(64 + 2, num_heads)
