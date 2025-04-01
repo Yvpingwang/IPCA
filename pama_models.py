@@ -33,11 +33,7 @@ class PACA(nn.Module):
         super().__init__()
         self.num_heads = num_heads
         head_dim = dim // num_heads
-        # NOTE scale factor was wrong in my original version, can set manually to be compat with prev weights
         self.scale = qk_scale or head_dim ** -0.5
-
-        # ignore polar head
-        # self.polar_emb = nn.Embedding(8, num_heads)
 
         # update polar head separately
         self.polar_emb = nn.Embedding(8, 1)
@@ -72,16 +68,10 @@ class PACA(nn.Module):
 
         rd = self.dis_embed(rd)
         rd = rd.permute(0, 3, 1, 2)
-        k_x_attn = (k_q @ k.transpose(-2, -1)) * self.scale  # shape=[b, h, k_l, x_l]   ########
+        k_x_attn = (k_q @ k.transpose(-2, -1)) * self.scale  # shape=[b, h, k_l, x_l]   
         polar_pos = repeat(polar_pos.unsqueeze(1), 'b () i j -> b h i j', h=self.num_heads)
 
-        # 1.fix new_polar (polar_emb(8, num_head))
-        # new_polar = self.polar_emb(polar_pos.to(torch.int64)).permute(0, 3, 1, 2)
-        # 2.ignore polar head (polar_emb(8, num_head))
-        # new_polar = self.generate_main_orientation(k_x_attn, polar_pos)
-        # new_polar = self.polar_emb(new_polar).permute(0, 3, 1, 2)
-
-        # 3.update polar head separately (polar_emb(8, 1))
+        # update polar head separately (polar_emb(8, 1))
         zeros_tensor = torch.zeros_like(polar_pos).cuda(polar_pos.device)
         max_tensor = torch.ones_like(polar_pos).cuda(polar_pos.device) * 7
         polar_pos = torch.where(polar_pos < 0, zeros_tensor, polar_pos)
@@ -94,7 +84,7 @@ class PACA(nn.Module):
         if att_mask is not None:
             k_x_attn = k_x_attn.masked_fill(att_mask.permute(0, 1, 3, 2), torch.tensor(-1e6))
         k_x_attn = (k_x_attn + rd + new_polar).softmax(dim=-1)
-        k_out = k_x_attn @ v######
+        k_out = k_x_attn @ v
         k_out = rearrange(k_out, 'b h n d -> b n (h d)')
         k_out = self.proj_drop(self.proj(k_out))
 
@@ -154,7 +144,6 @@ class PamaViT(nn.Module):
         self.nk = num_kernel
         # self.k_pro = nn.Linear(512, embed_dim)
         self.num_heads = num_heads
-        #
 
         self.blocks = nn.ModuleList([
             Block(embed_dim, num_heads, mlp_ratio, qkv_bias=True, qk_scale=None, norm_layer=norm_layer)
@@ -225,9 +214,6 @@ class PamaViT(nn.Module):
     def forward(self, imgs, wsi_rd, wsi_polar, token_mask, kernel_mask, device, mask_ratio=0.75):
         b = imgs.shape[0]
         kernel_tokens = repeat(self.kernel_token, '() () d -> b k d', b=b, k=self.nk)
-        # kernel_tokens = torch.from_numpy(np.load("/media/disk2/wangyuping/BRCA/feature_vision/12Kmeans_WSI-IHC/representative_points.npy")).cuda(device)
-        # kernel_tokens = self.k_pro(kernel_tokens)
-        # kernel_tokens = repeat(kernel_tokens,'k d -> b k d', b=b)
         latent, kernel_tokens = self.forward_encoder(imgs, wsi_rd, wsi_polar, token_mask, kernel_mask,
                                                                      kernel_tokens, device, mask_ratio)
         kernel_tokens = self.norm(kernel_tokens)
