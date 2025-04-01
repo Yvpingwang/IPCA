@@ -1,7 +1,7 @@
 # Leveraging IHC Staining to Prompt HER2 Status Prediction from HE-Stained Histopathology Whole Slide Images
 This is a PyTorch implementation of the paper [IPCA](https://doi.org/10.1007/978-3-031-73284-3_14):
 
-###Patch feature extract
+### Patch feature extract
 For patch feature extraction, please refer to the ​Patch Feature Extract section in PAMA.
 
 ### baseline-PAMA
